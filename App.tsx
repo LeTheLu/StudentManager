@@ -5,114 +5,148 @@
  * @format
  */
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, TextInput, Button, FlatList } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+export default function App() {
+  const [name, setName] = useState('');
+  const [className, setClassName] = useState('');
+  const [dob, setDob] = useState('');
+  const [students, setStudents] = useState<{ id: string, name: string, className: string, dob: string }[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [date, setDate] = useState(new Date());
+const [showDatePicker, setShowDatePicker] = useState(false);
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const removeStudent = (studentId: string) => {
+    setStudents(prevStudents =>
+      prevStudents.filter(student => student.id !== studentId)
+    );
+  };
+
+  const showDatePickerModal = () => {
+    setShowDatePicker(true);
+  };
+
+  const handleDateChange = (event: any, selectedDate: Date) => {
+    const currentDate = selectedDate || date;
+    setShowDatePicker(false); // Ẩn DatePicker sau khi người dùng đã chọn
+    setDate(currentDate); // Lưu ngày được chọn vào trạng thái
+    setDob(currentDate.toLocaleDateString()); // Cập nhật giá trị trong ô nhập ngày sinh
+  };
+
+  const editStudent = (studentId: string) => {
+    const studentToEdit = students.find(student => student.id === studentId);
+    if (studentToEdit) {
+      setName(studentToEdit.name);
+      setClassName(studentToEdit.className);
+      setDob(studentToEdit.dob);
+      setIsEditing(true);
+      setEditingId(studentId);
+    }
+  };
+
+  const addOrUpdateStudent = () => {
+    if (isEditing) {
+      // Nếu đang ở chế độ chỉnh sửa, cập nhật thông tin của sinh viên
+      setStudents(prevStudents =>
+        prevStudents.map(student =>
+          student.id === editingId ? { ...student, name, className, dob } : student
+        )
+      );
+      setEditingId(null);
+      setIsEditing(false);
+    } else {
+      // Nếu không, thêm mới sinh viên
+      setStudents(prevStudents => [
+        ...prevStudents,
+        { id: Math.random().toString(), name, className, dob }
+      ]);
+    }
+    setName('');
+    setClassName('');
+    setDob('');
+  };
+
+  const renderItem = ({ item }: { item: { id: string, name: string, className: string, dob: string } }) => (
+    <View style={styles.item}>
+      <Text>{item.name}</Text>
+      <Text>{item.className}</Text>
+      <Text>{item.dob}</Text>
+      <Button
+        title="Xóa"
+        onPress={() => removeStudent(item.id)}
+      />
+      <Button
+        title="Chỉnh sửa"
+        onPress={() => editStudent(item.id)}
+      />
+    </View>
+  );
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View style={styles.container}>
+      <View style={styles.inputContainer}>
+        <TextInput
+          placeholder="Tên"
+          style={styles.input}
+          onChangeText={setName}
+          value={name}
+        />
+        <TextInput
+          placeholder="Lớp"
+          style={styles.input}
+          onChangeText={setClassName}
+          value={className}
+        />
+        <TextInput
+          placeholder="Ngày sinh"
+          style={styles.input}
+          onChangeText={setDob}
+          value={dob}
+        />
+        <Button title={isEditing ? "Cập nhật" : "Thêm"} onPress={addOrUpdateStudent} />
+
+      </View>
+      <FlatList
+        style={styles.list}
+        data={students}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+      />
     </View>
   );
 }
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    marginTop: 50,
+    paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  inputContainer: {
+    marginBottom: 20,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  input: {
+    marginBottom: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
   },
-  highlight: {
-    fontWeight: '700',
+  list: {
+    flex: 1,
+  },
+  item: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
   },
 });
-
-export default App;
